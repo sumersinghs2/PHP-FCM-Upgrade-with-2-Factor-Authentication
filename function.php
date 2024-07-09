@@ -104,3 +104,42 @@ function getFirebaseAccessToken() {
 
 	return $tokenResponse['access_token'];
 }
+
+
+/**
+ * Function to encode a JWT
+ */
+function encodeJWT($payload, $privateKey) {
+	// Create the JWT header
+	$header = array("alg" => "RS256", "typ" => "JWT");
+
+	// Encode header and payload to base64url
+	$base64UrlHeader = str_replace(['+', '/', '='], ['-', '_', ''], base64_encode(json_encode($header)));
+	$base64UrlPayload = str_replace(['+', '/', '='], ['-', '_', ''], base64_encode(json_encode($payload)));
+
+	// Create the signature
+	$signature = '';
+	openssl_sign($base64UrlHeader . "." . $base64UrlPayload, $signature, $privateKey, OPENSSL_ALGO_SHA256);
+	$base64UrlSignature = str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($signature));
+
+	// Return the complete JWT
+	return $base64UrlHeader . "." . $base64UrlPayload . "." . $base64UrlSignature;
+}
+
+/**
+ * Function to make a POST request and return the response
+ */
+function makePostRequest($url, $data) {
+	$ch = curl_init($url);
+	curl_setopt($ch, CURLOPT_POST, true);
+	curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+	curl_setopt($ch, CURLOPT_HTTPHEADER, array("Content-Type: application/x-www-form-urlencoded"));
+	curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($data));
+	$result = curl_exec($ch);
+	if ($result === FALSE) {
+		die("Curl failed: " . curl_error($ch));
+	}
+	curl_close($ch);
+	return json_decode($result, true);
+}
+
